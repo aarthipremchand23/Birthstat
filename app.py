@@ -192,6 +192,7 @@ total_births = df_filtered["births"].sum()
 unique_months = max(1, df_filtered["month"].nunique())
 avg_monthly = total_births / unique_months
 
+# Get state totals to find leading state
 state_totals = df_filtered.groupby("state_of_residence")["births"].sum()
 top_state = state_totals.idxmax() if not state_totals.empty else "N/A"
 top_state_val = state_totals.max() if not state_totals.empty else 0
@@ -238,21 +239,16 @@ with colB:
         y="births",
         color="sex_of_infant",
         barmode="stack",
+        color_discrete_map={"Male": "#1f77b4", "Female": "#87CEEB"}, # Dark and Light blue
         title="Monthly Births by Sex",
         labels={"month": "Month", "births": "Birth Count", "sex_of_infant": "Sex"}
     )
     fig_sex.update_layout(plot_bgcolor="white", paper_bgcolor="white", margin=dict(l=20, r=20, t=50, b=30))
     st.plotly_chart(fig_sex, use_container_width=True)
 
-st.subheader("🗺️ Birth Volume by State")
+st.subheader("🗺️ Birth Volume by State & Sex")
 
-state_vol = (
-    df_filtered.groupby("state_of_residence", as_index=False)["births"]
-    .sum()
-    .sort_values("births", ascending=False)
-)
-
-max_states = len(state_vol)
+max_states = len(state_totals)
 
 if max_states > 0:
     # Interactive Slider for top N states
@@ -263,18 +259,29 @@ if max_states > 0:
         value=min(15, max_states)
     )
 
-    display_states = state_vol.head(num_states_to_display)
+    # Sort state totals to get top N state names
+    top_states = state_totals.sort_values(ascending=False).head(num_states_to_display).index.tolist()
+    
+    # Filter dataset for only top N states and group by state + sex
+    state_sex_vol = (
+        df_filtered[df_filtered["state_of_residence"].isin(top_states)]
+        .groupby(["state_of_residence", "sex_of_infant"], as_index=False)["births"]
+        .sum()
+    )
 
     # Dynamically calculate chart height to prevent squishing when large numbers of states are selected
-    chart_height = max(400, len(display_states) * 25)
+    chart_height = max(400, len(top_states) * 25)
 
     fig_state = px.bar(
-        display_states,
+        state_sex_vol,
         x="births",
         y="state_of_residence",
+        color="sex_of_infant",
         orientation="h",
-        title=f"State Volume Comparison (Top {num_states_to_display})",
-        labels={"state_of_residence": "State", "births": "Total Births"},
+        barmode="stack",
+        color_discrete_map={"Male": "#1f77b4", "Female": "#87CEEB"}, # Dark and Light blue
+        title=f"State Volume Comparison (Top {num_states_to_display}) Broken Down by Sex",
+        labels={"state_of_residence": "State", "births": "Total Births", "sex_of_infant": "Sex"},
         height=chart_height
     )
     fig_state.update_layout(
