@@ -132,25 +132,16 @@ def process_data(file_source):
     return df, None
 
 # ---------------------------------------------------------
-# Sidebar: Auto-Detect Local Datasets
+# Auto-Detect Local Dataset (No UI)
 # ---------------------------------------------------------
-st.sidebar.header("📁 Data Source")
-
-# Scan the local directory for CSV files
 csv_files = glob.glob("*.csv")
 
 if not csv_files:
     st.error("⚠️ No CSV files found in the application directory. Please ensure the dataset is placed in the same folder as this script.")
     st.stop()
 
-# If only one CSV exists, auto-load it. If multiple, show a dropdown.
-if len(csv_files) == 1:
-    file_to_load = csv_files[0]
-    st.sidebar.success(f"Auto-loaded: `{file_to_load}`")
-else:
-    file_to_load = st.sidebar.selectbox("Select Natality Dataset", options=csv_files)
-
-# Load and validate data
+# Automatically load the first CSV found
+file_to_load = csv_files[0]
 df_raw, error_msg = process_data(file_to_load)
 
 if error_msg:
