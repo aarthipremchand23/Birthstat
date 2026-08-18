@@ -25,26 +25,40 @@ df_raw = load_data()
 # ---------------------------------------------------------
 st.sidebar.header("Dashboard Filters")
 
-# State Filter
+# State Filter with "All" option
 states = df_raw['state_of_residence'].unique().tolist()
-selected_states = st.sidebar.multiselect("Select State(s)", options=states, default=states)
+state_options = ["All"] + states
+selected_states = st.sidebar.multiselect("Select State(s)", options=state_options, default=["All"])
 
 # Month Filter
 min_month, max_month = int(df_raw['month_code'].min()), int(df_raw['month_code'].max())
 selected_months = st.sidebar.slider("Select Month Range", min_value=min_month, max_value=max_month, value=(min_month, max_month))
 
-# Sex Filter
+# Sex Filter with "All" option
 sexes = df_raw['sex_of_infant'].unique().tolist()
-selected_sex = st.sidebar.multiselect("Select Sex of Infant", options=sexes, default=sexes)
+sex_options = ["All"] + sexes
+selected_sex = st.sidebar.multiselect("Select Sex of Infant", options=sex_options, default=["All"])
 
 # ---------------------------------------------------------
-# Filter the Data
+# Filter Logic Processing
 # ---------------------------------------------------------
+# If "All" is selected, use the full list of options, otherwise use user selection
+if "All" in selected_states:
+    final_states = states
+else:
+    final_states = selected_states
+
+if "All" in selected_sex:
+    final_sex = sexes
+else:
+    final_sex = selected_sex
+
+# Apply filters to dataframe
 df_filtered = df_raw[
-    (df_raw['state_of_residence'].isin(selected_states)) &
+    (df_raw['state_of_residence'].isin(final_states)) &
     (df_raw['month_code'] >= selected_months[0]) &
     (df_raw['month_code'] <= selected_months[1]) &
-    (df_raw['sex_of_infant'].isin(selected_sex))
+    (df_raw['sex_of_infant'].isin(final_sex))
 ]
 
 # ---------------------------------------------------------
@@ -92,6 +106,7 @@ else:
     st.subheader("State Volume Comparisons")
     # Aggregate by state
     state_vol = df_filtered.groupby('state_of_residence')['births'].sum().reset_index().sort_values('births', ascending=False)
+    
     # Take top 15 if there are too many for a clean chart
     fig_state = px.bar(state_vol.head(15), x='births', y='state_of_residence', orientation='h',
                        title="Top 15 States by Total Births (Filtered)",
