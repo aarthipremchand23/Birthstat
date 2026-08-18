@@ -237,7 +237,7 @@ with colB:
         x="month",
         y="births",
         color="sex_of_infant",
-        barmode="stack", # Updated to stacked bar chart
+        barmode="stack",
         title="Monthly Births by Sex",
         labels={"month": "Month", "births": "Birth Count", "sex_of_infant": "Sex"}
     )
@@ -246,48 +246,46 @@ with colB:
 
 st.subheader("🗺️ Birth Volume by State")
 
-# Toggle for top N states
-display_option = st.radio(
-    "Select number of states to display:",
-    options=["Top 10", "Top 15", "Top 20", "All"],
-    horizontal=True
-)
-
 state_vol = (
     df_filtered.groupby("state_of_residence", as_index=False)["births"]
     .sum()
     .sort_values("births", ascending=False)
 )
 
-# Apply state display toggle logic
-if display_option == "Top 10":
-    display_states = state_vol.head(10)
-elif display_option == "Top 15":
-    display_states = state_vol.head(15)
-elif display_option == "Top 20":
-    display_states = state_vol.head(20)
+max_states = len(state_vol)
+
+if max_states > 0:
+    # Interactive Slider for top N states
+    num_states_to_display = st.slider(
+        "Select number of top states to display:",
+        min_value=1,
+        max_value=max_states,
+        value=min(15, max_states)
+    )
+
+    display_states = state_vol.head(num_states_to_display)
+
+    # Dynamically calculate chart height to prevent squishing when large numbers of states are selected
+    chart_height = max(400, len(display_states) * 25)
+
+    fig_state = px.bar(
+        display_states,
+        x="births",
+        y="state_of_residence",
+        orientation="h",
+        title=f"State Volume Comparison (Top {num_states_to_display})",
+        labels={"state_of_residence": "State", "births": "Total Births"},
+        height=chart_height
+    )
+    fig_state.update_layout(
+        yaxis={"categoryorder": "total ascending"},
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        margin=dict(l=20, r=20, t=50, b=30)
+    )
+    st.plotly_chart(fig_state, use_container_width=True)
 else:
-    display_states = state_vol
-
-# Dynamically calculate chart height to prevent squishing when "All" is selected
-chart_height = max(400, len(display_states) * 25)
-
-fig_state = px.bar(
-    display_states,
-    x="births",
-    y="state_of_residence",
-    orientation="h",
-    title=f"State Volume Comparison ({display_option})",
-    labels={"state_of_residence": "State", "births": "Total Births"},
-    height=chart_height
-)
-fig_state.update_layout(
-    yaxis={"categoryorder": "total ascending"},
-    plot_bgcolor="white",
-    paper_bgcolor="white",
-    margin=dict(l=20, r=20, t=50, b=30)
-)
-st.plotly_chart(fig_state, use_container_width=True)
+    st.warning("No state data available to display.")
 
 # --- Planning Signals Section ---
 st.divider()
