@@ -237,7 +237,7 @@ with colB:
         x="month",
         y="births",
         color="sex_of_infant",
-        barmode="group",
+        barmode="stack", # Updated to stacked bar chart
         title="Monthly Births by Sex",
         labels={"month": "Month", "births": "Birth Count", "sex_of_infant": "Sex"}
     )
@@ -245,20 +245,41 @@ with colB:
     st.plotly_chart(fig_sex, use_container_width=True)
 
 st.subheader("🗺️ Birth Volume by State")
+
+# Toggle for top N states
+display_option = st.radio(
+    "Select number of states to display:",
+    options=["Top 10", "Top 15", "Top 20", "All"],
+    horizontal=True
+)
+
 state_vol = (
     df_filtered.groupby("state_of_residence", as_index=False)["births"]
     .sum()
     .sort_values("births", ascending=False)
 )
-# Top 15 states or all if filtered list is short
-display_states = state_vol.head(15) if len(state_vol) > 15 else state_vol
+
+# Apply state display toggle logic
+if display_option == "Top 10":
+    display_states = state_vol.head(10)
+elif display_option == "Top 15":
+    display_states = state_vol.head(15)
+elif display_option == "Top 20":
+    display_states = state_vol.head(20)
+else:
+    display_states = state_vol
+
+# Dynamically calculate chart height to prevent squishing when "All" is selected
+chart_height = max(400, len(display_states) * 25)
+
 fig_state = px.bar(
     display_states,
     x="births",
     y="state_of_residence",
     orientation="h",
-    title="State Volume Comparison (Top Jurisdictions)",
-    labels={"state_of_residence": "State", "births": "Total Births"}
+    title=f"State Volume Comparison ({display_option})",
+    labels={"state_of_residence": "State", "births": "Total Births"},
+    height=chart_height
 )
 fig_state.update_layout(
     yaxis={"categoryorder": "total ascending"},
