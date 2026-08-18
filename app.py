@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
+import glob
 
 # ---------------------------------------------------------
 # Page Configuration
@@ -91,10 +92,7 @@ def _match_logical_fields(columns_norm):
 def process_data(file_source):
     """Loads, cleans, validates, and standardizes any CDC Natality CSV dataset."""
     try:
-        if isinstance(file_source, str):
-            df = pd.read_csv(file_source)
-        else:
-            df = pd.read_csv(file_source)
+        df = pd.read_csv(file_source)
     except Exception as e:
         return None, f"Failed to read CSV file: {str(e)}"
 
@@ -134,31 +132,25 @@ def process_data(file_source):
     return df, None
 
 # ---------------------------------------------------------
-# Sidebar: File Uploader & Controls
+# Sidebar: Auto-Detect Local Datasets
 # ---------------------------------------------------------
 st.sidebar.header("📁 Data Source")
-uploaded_file = st.sidebar.file_uploader("Upload Natality CSV", type=["csv"])
 
-# Determine file source
-default_files = [
-    "Provisional_Natality_2025_CDC.csv",
-    "Week-3-Video-Lab-2-Provisional-Natality-2025-CDC.csv"
-]
-file_to_load = None
+# Scan the local directory for CSV files
+csv_files = glob.glob("*.csv")
 
-if uploaded_file is not None:
-    file_to_load = uploaded_file
-else:
-    for default in default_files:
-        if os.path.exists(default):
-            file_to_load = default
-            break
-
-# Load and validate data
-if file_to_load is None:
-    st.info("👈 Please upload a natality dataset CSV file in the sidebar to begin.")
+if not csv_files:
+    st.error("⚠️ No CSV files found in the application directory. Please ensure the dataset is placed in the same folder as this script.")
     st.stop()
 
+# If only one CSV exists, auto-load it. If multiple, show a dropdown.
+if len(csv_files) == 1:
+    file_to_load = csv_files[0]
+    st.sidebar.success(f"Auto-loaded: `{file_to_load}`")
+else:
+    file_to_load = st.sidebar.selectbox("Select Natality Dataset", options=csv_files)
+
+# Load and validate data
 df_raw, error_msg = process_data(file_to_load)
 
 if error_msg:
